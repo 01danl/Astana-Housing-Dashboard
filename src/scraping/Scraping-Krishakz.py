@@ -64,5 +64,25 @@ def scr_page(url):
         return next_page['href'] if next_page else None
 
     except Exception as e:
-        print(f"Error scraping {url}: {e}"))
+        print(f"Error scraping {url}: {e}")
         return None
+
+def main():
+    current_url = url
+    page_count = 1
+    max_pages = 12
+
+    while current_url and page_count < max_pages:
+        print(f"Scraping page {current_url}... page_count={page_count}")
+        next_page = scr_page(current_url)
+        current_url = next_page
+        page_count += 1
+
+        time.sleep(random.uniform(1, 3))
+
+    df = pd.DataFrame(data)
+    df.to_csv('krisha_astana_rentals.csv', index=False, encoding='utf-8')
+    print("Succesful")
+
+if __name__ == '__main__':
+    main()
