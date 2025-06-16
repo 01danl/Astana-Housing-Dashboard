@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
@@ -29,11 +30,26 @@ def scr_page(url):
                 area = None
                 floor = None
                 if title_text:
-                    parts = title.text_split(',')
+                    parts = [part.strip() for part in title_text.split('·')]
+                    if len(parts) > 0:
+                        first_part = parts[0]
+                        if 'комнатная' in first_part:
+                            rooms = first_part.split('-')[0].strip() if '-' in first_part else 'Студия'
+                        if len(parts) > 1:
+                            second_part = parts[1]
+                            if 'м²' in second_part:
+                                area = second_part
+                        if len(parts) > 2:
+                            third_part = parts[2]
+                            if '/' in third_part or 'этаж' in third_part:
+                                floor = third_part
+                    """
+                    parts = title_text.split()
+                    print(f"parts: {parts}")
                     rooms = parts[0].split('-')[0].strip() if len(parts) > 0 else None
-                    area = parts[1].strip() if len(parts) > 1 else None
-                    floor = parts[2].strip() if len(parts) > 2 else None
-
+                    area = parts[3].strip() if len(parts) > 2 else None
+                    floor = parts[6].strip() if len(parts) > 3 else None
+                """
                 district = listing.find('div', class_='a-card__subtitle')
                 district_text = district.get_text(strip=True) if district else None
 
@@ -41,7 +57,7 @@ def scr_page(url):
                 price_text = price.get_text(strip=True) if price else None
 
                 if district_text:
-                    parts = district.text_split(',', 1)
+                    parts = district_text.split(',', 1)
                     district = parts[0].strip() if len(parts) > 0 else None
                     address = parts[1].strip() if len(parts) > 1 else None
 
@@ -60,8 +76,8 @@ def scr_page(url):
             except Exception as e:
                 print(f"Error scraping {url}: {e}")
                 continue
-        next_page = soup.find('a', class_='paginator__btn-text')
-        return next_page['href'] if next_page else None
+        next_page = soup.find('a', class_='paginator__btn paginator__btn--next')
+        return urljoin(url, next_page['href']) if next_page and next_page.get('href') else None
 
     except Exception as e:
         print(f"Error scraping {url}: {e}")
@@ -70,7 +86,7 @@ def scr_page(url):
 def main():
     current_url = url
     page_count = 1
-    max_pages = 12
+    max_pages = 80
 
     while current_url and page_count < max_pages:
         print(f"Scraping page {current_url}... page_count={page_count}")
@@ -78,11 +94,11 @@ def main():
         current_url = next_page
         page_count += 1
 
-        time.sleep(random.uniform(1, 3))
+        #time.sleep(random.uniform(0.5, 1.5))
 
     df = pd.DataFrame(data)
     df.to_csv('krisha_astana_rentals.csv', index=False, encoding='utf-8')
     print("Succesful")
 
 if __name__ == '__main__':
-    main()
+        main()
